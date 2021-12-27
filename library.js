@@ -1,165 +1,144 @@
 
-//simple object constructor 
-function Book(title,author,pages,read = false) {
-  this.title = title;
-  this.author = author;
-  this.pages = pages;
-  this.read = read; //expects boolean
+//simple object constructor refactored into class
+class Book {
 
-  this.toggleRead = function(){
+  constructor(title,author,pages,read = false) {
+    this.title = title;
+    this.author = author;
+    this.pages = pages;
+    this.read = read; //expects boolean
+  }
+
+  updateRead() {
     this.read = !this.read;
   }
+
+  getTitle() { return this.title; }
+
+  getAuthor() { return this.author; }
+
+  getPages() { return this.pages; }
+
+  getRead() { return this.read; }
+  
 }
 
-//set up array to store all books
-let myLibrary = [];
-
-//addition of local storage:
-if(!localStorage.getItem('odinLibrary')) {
-  populateDefaultLibrary();
-  populateStorage();
-} else {
-  loadStoredLibrary();
-}
-
-//simple default library used if no local storage
-function populateDefaultLibrary() {
-  const theHobbit = new Book("The Hobbit","J.R.R. Tolkien", 295, true);
-  const lotr = new Book("The Fellowship of the Ring","J.R.R. Tolkien", 500, true);
-  myLibrary = [theHobbit, lotr];
-}
-
-//updates local storage with myLibrary array
-function populateStorage() {
-  localStorage.setItem('odinLibrary', JSON.stringify(myLibrary));
-
-  loadStoredLibrary();
-}
-
-function loadStoredLibrary() {
-  myLibrary = [];
-  myTempLibrary = JSON.parse(localStorage.getItem('odinLibrary'));
-  myTempLibrary.forEach(function(book){
-    newBook = new Book(book.title,book.author,book.pages,book.read);
-    myLibrary.push(newBook);
-  });
-}
-
-
-
-const libraryList = document.getElementById('library')
-
-populateLibrary();
-
-
-
-function addBookToLibrary() {
-  let title = document.getElementById("title").value;
-  let author = document.getElementById("author").value;
-  let pages = document.getElementById("pages").value;
-  let read = document.getElementById("read").checked;
-  let book = new Book(title,author,pages,read);
-
-  myLibrary.push(book);
-  populateLibrary();
-}
-
-
-
-//done using "old method"
-/*
-myLibrary.forEach(function(book){
-  const ul = document.createElement('ul');
-  const title = document.createElement('li');
-  title.innerHTML = "Title: " + book.title;
-  const author = document.createElement('li');
-  author.innerHTML = "Author: " + book.author;
-  const pages = document.createElement('li');
-  pages.innerHTML = "Number of pages: " + book.pages;
-  const read = document.createElement('li');
-  read.innerHTML = book.read;
-  ul.appendChild(title);
-  ul.appendChild(author);
-  ul.appendChild(pages);
-  ul.appendChild(read);
-  libraryList.appendChild(ul);
-})
-
-//"inbetween" method (doesnt work)
-myLibrary.forEach(function(book){
-  let html = document.createElement('div');
-  htmlstr = "<ul><li>Title: " + book.title + "</li><li>Author: " + book.author + "</li><li>Number of pages: " + book.pages + "</li><li>Read: " + book.read + "</li></ul>";
-  html.innerHTML = htmlstr;
-  libraryList.appendChild(html);
-})
-
-*/
-
-// done using template literal (so easy!)
-// changed to a function so it can be refreshed
-
-function populateLibrary() {
-  populateStorage();
-  libraryList.innerHTML = `<h1>Library</h1>`;
-  let index = 0
-  myLibrary.forEach(function(book){
-    let html = document.createElement('div')
-    html.innerHTML = `<ul>
-      <li>Title: ${book.title}</li>
-      <li>Author: ${book.author}</li>
-      <li>Number of pages: ${book.pages}</li>
-      <li>Read: ${book.read}</li>
-      <li><button arrIndex=${index} class="bookReadBtn" type="button">Mark as read</button></li>
-      <li><button arrIndex=${index} class="bookDeleteBtn" type="button">Delete!</button></li></ul>`;
-    index++;
-    libraryList.appendChild(html);
-  })
-  addListenersToLibrary();
-}
-
-
-
-let showFormBtn = document.getElementById("showFormButton");
-let form = document.getElementById("form");
-form.style.display = "none";
-showFormBtn.addEventListener("click", toggleForm);
-function toggleForm(){
-  if (form.style.display === "none") {
-    form.style.display = "block";
-    showFormBtn.innerHTML = "Hide form!";
-  } else {
-    form.style.display = "none";
-    showFormBtn.innerHTML = "Show form!";
+//refactored all library and storage methods into a module
+const library = (() => {
+  let myLibrary = [];
+  
+  const addBook = (title,author,pages,read) => {
+    let book = new Book(title,author,pages,read);
+    myLibrary.push(book);
+    update();
   }
 
-}
+  const removeBook = (index) => {
+    myLibrary.splice(index,1);
+  }
 
-let addBookBtn = document.getElementById("submitForm");
-addBookBtn.addEventListener("click", addBookToLibrary);
+  const getLibrary = () => myLibrary;
+  
+  const defaultLibrary = () => { 
+    //simple default library to use if no local storage
+    const theHobbit = new Book("The Hobbit","J.R.R. Tolkien", 295, true);
+    const lotr = new Book("The Fellowship of the Ring","J.R.R. Tolkien", 500, true);
+    myLibrary = [theHobbit, lotr];
+  }
 
-function addListenersToLibrary() {
-  let toggleReadBtns = document.querySelectorAll(".bookReadBtn");
-  toggleReadBtns.forEach(function(element){
-    element.addEventListener("click", readToogler);
-  })
-  let toggleDeleteBtns = document.querySelectorAll(".bookDeleteBtn");
-  toggleDeleteBtns.forEach(function(element){
-    element.addEventListener("click", deleteBook);
-  })
-}
+  const update = () => {
+    //updates local storage with myLibrary array
+    localStorage.setItem('odinLibrary', JSON.stringify(myLibrary));
+  }
 
+  const load = () => {
+    //load library from local storage otherwise uses default library
+    myTempLibrary = JSON.parse(localStorage.getItem('odinLibrary'));
+    if (myTempLibrary && myTempLibrary.length > 0) {
+      myTempLibrary.forEach(function(book){
+        newBook = new Book(book.title,book.author,book.pages,book.read);
+        myLibrary.push(newBook);
+      });
+    } else { defaultLibrary() }
+  }
 
-function readToogler() {
-  let bookId = this.getAttribute("arrIndex");
-  myLibrary[bookId].toggleRead();
-  populateLibrary();
-}
+  load();
 
+  return {addBook, getLibrary, update, removeBook}
+})()
 
+const displayController = (() => {
+  const libraryList = document.getElementById('library')
+  let showFormBtn = document.getElementById("showFormButton");
+  let form = document.getElementById("form");
+  form.style.display = "none";
+  let addBookBtn = document.getElementById("submitForm");
+  addBookBtn.addEventListener("click", addBook);
+    
+  const toggleForm = () => {
+    if (form.style.display === "none") {
+      form.style.display = "block";
+      showFormBtn.innerHTML = "Hide form!";
+    } else {
+      form.style.display = "none";
+      showFormBtn.innerHTML = "Show form!";
+    }
+  }
 
-function deleteBook() {
-  let bookId = this.getAttribute("arrIndex");
-  myLibrary.splice(bookId,1);
-  populateLibrary();
-}
+  showFormBtn.addEventListener("click", toggleForm);
 
+  const addBookEventListeners = () => {
+    let toggleReadBtns = document.querySelectorAll(".bookReadBtn");
+    toggleReadBtns.forEach(function(element){
+      element.addEventListener("click", readToogler);
+    })
+    let toggleDeleteBtns = document.querySelectorAll(".bookDeleteBtn");
+    toggleDeleteBtns.forEach(function(element){
+      element.addEventListener("click", deleteBook);
+    })
+  }
+
+  const refreshLibrary = () => {
+    libraryList.innerHTML = `<h1>Library</h1>`;
+    let index = 0;
+    library.getLibrary().forEach(function(book){
+      let html = document.createElement('div')
+      html.innerHTML = `<ul>
+        <li>Title: ${book.getTitle()}</li>
+        <li>Author: ${book.getAuthor()}</li>
+        <li>Number of pages: ${book.getPages()}</li>
+        <li>Read: ${book.getRead()}</li>
+        <li><button arrIndex=${index} class="bookReadBtn" type="button">Mark as read</button></li>
+        <li><button arrIndex=${index} class="bookDeleteBtn" type="button">Delete!</button></li></ul>`;
+      index++;
+      libraryList.appendChild(html);
+    })
+    addBookEventListeners();
+  }
+
+  function readToogler() {
+    let bookId = event.target.getAttribute("arrIndex");
+    library.getLibrary()[bookId].updateRead();
+    refreshLibrary();
+    library.update();
+  }
+
+  function deleteBook() {
+    let bookId = event.target.getAttribute("arrIndex");
+    library.removeBook(bookId);
+    refreshLibrary();
+    library.update();
+  }
+
+  function addBook() {
+    let title = document.getElementById("title").value;
+    let author = document.getElementById("author").value;
+    let pages = document.getElementById("pages").value;
+    let read = document.getElementById("read").checked;
+    library.addBook(title,author,pages,read);
+    refreshLibrary();
+  }
+
+  refreshLibrary();
+
+})()
